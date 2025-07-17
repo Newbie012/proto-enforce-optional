@@ -4,11 +4,11 @@ A GitHub Action that validates newly added protobuf fields have the `optional` k
 
 ## Overview
 
-This Action scans the diff of changed `.proto` files and blocks a PR if any **new scalar field** lacks the `optional` label. Message, `repeated`, `map`, and `oneof` fields are skipped because they already provide presence or can't be optional.
+This Action scans the diff of changed `.proto` files and blocks a PR if any **new scalar field** lacks the `optional` label. Message types, `repeated`, `map`, and `oneof` fields are skipped because they already provide field presence or can't be optional.
 
 ## Why
 
-Without `optional`, proto 3 can't tell "unset" from "set to default" for scalars, breaking PATCH‑style APIs. Enforcing the label up front keeps schemas unambiguous and future‑proof.
+Enforces consistent use of the `optional` keyword on scalar fields to maintain explicit field presence semantics across your protobuf schemas.
 
 ## Usage
 
@@ -81,44 +81,41 @@ jobs:
 | `violations-found` | Whether any violations were found (`true`/`false`) |
 | `violations-count` | Number of violations found |
 
-## Field Types
+## What Gets Validated
 
-The action validates all protobuf field types including scalar types (`string`, `int32`, `bool`, etc.), fixed types (`fixed32`, `sfixed64`, etc.), and custom message types.
+The action only validates **scalar field types**, requiring them to have the `optional` keyword:
+- `string`, `int32`, `int64`, `uint32`, `uint64`, `bool`, `bytes`
+- `double`, `float`
+- `fixed32`, `fixed64`, `sfixed32`, `sfixed64` 
+- `sint32`, `sint64`
 
-Fields that cannot have the `optional` keyword due to protobuf syntax are automatically skipped:
-- `repeated` fields (syntax error to use `optional`)
-- `map` fields (syntax error to use `optional`) 
-- Fields within `oneof` blocks (syntax error to use `optional`)
+The action **ignores** message types, `repeated` fields, `map` fields, and `oneof` fields.
 
 ## Examples
 
-### Valid Protobuf
+### ✅ Passes Validation
 
-```protobuf
-syntax = "proto3";
-
-message User {
-  optional string name = 1;
-  optional int32 age = 2;
-  repeated string tags = 3;           // Cannot be optional
-  map<string, string> metadata = 4;   // Cannot be optional
-  
-  oneof contact {                     // Fields cannot be optional
-    string email = 5;
-    string phone = 6;
-  }
-}
+```diff
++message User {
++  optional string name = 1;        // ✅ Scalar with optional
++  repeated string tags = 2;        // ✅ Repeated fields ignored  
++  map<string, int32> scores = 3;   // ✅ Map fields ignored
++  Address address = 4;             // ✅ Message types ignored
++  oneof contact {                  // ✅ Oneof fields ignored
++    string email = 5;
++    string phone = 6;
++  }
++}
 ```
 
-### Invalid Protobuf
+### ❌ Fails Validation
 
-```protobuf
-syntax = "proto3";
-
-message User {
-  string name = 1;    // Missing 'optional' keyword
-  int32 age = 2;      // Missing 'optional' keyword
-}
+```diff
++message User {
++  string name = 1;                 // ❌ Missing 'optional' keyword  
++  int32 age = 2;                   // ❌ Missing 'optional' keyword
++  Address address = 3;             // ✅ Message types ignored
++}
 ```
 
 ## Development

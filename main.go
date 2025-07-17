@@ -165,6 +165,23 @@ func getIndentation(line string) int {
 	return len(content) - len(strings.TrimLeft(content, " \t"))
 }
 
+func isScalarType(fieldType string) bool {
+	scalarTypes := []string{
+		"double", "float",
+		"int32", "int64", "uint32", "uint64",
+		"sint32", "sint64",
+		"fixed32", "fixed64", "sfixed32", "sfixed64",
+		"bool", "string", "bytes",
+	}
+
+	for _, scalarType := range scalarTypes {
+		if fieldType == scalarType {
+			return true
+		}
+	}
+	return false
+}
+
 func checkFieldViolation(line string, ctx *diffContext) string {
 	if ctx.inOneof || mapPattern.MatchString(line) {
 		return ""
@@ -179,7 +196,8 @@ func checkFieldViolation(line string, ctx *diffContext) string {
 		return ""
 	}
 
-	if !strings.HasPrefix(field.label, "optional") {
+	// Only enforce 'optional' for scalar types, not message types
+	if !strings.HasPrefix(field.label, "optional") && isScalarType(field.fieldType) {
 		return fmt.Sprintf("%s:%d: field '%s' of type '%s' is missing 'optional' keyword",
 			ctx.currentFile, ctx.currentLineNum, field.fieldName, field.fieldType)
 	}

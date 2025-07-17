@@ -144,7 +144,7 @@ index 0000000..123
 			},
 		},
 		{
-			name: "should_flag_all_protobuf_field_types_missing_optional",
+			name: "should_flag_all_scalar_field_types_missing_optional",
 			diffOutput: `diff --git a/proto/v1/test.proto b/proto/v1/test.proto
 new file mode 100644
 index 0000000..123
@@ -181,7 +181,47 @@ index 0000000..123
 				"proto/v1/test.proto:13: field 'fixed_field' of type 'fixed32' is missing 'optional' keyword",
 				"proto/v1/test.proto:14: field 'sfixed_field' of type 'sfixed64' is missing 'optional' keyword",
 				"proto/v1/test.proto:15: field 'sint_field' of type 'sint32' is missing 'optional' keyword",
-				"proto/v1/test.proto:16: field 'custom_field' of type 'CustomType' is missing 'optional' keyword",
+			},
+		},
+		{
+			name: "should_pass_message_types_without_optional_keyword",
+			diffOutput: `diff --git a/proto/v1/test.proto b/proto/v1/test.proto
+new file mode 100644
+index 0000000..123
+--- /dev/null
++++ b/proto/v1/test.proto
+@@ -0,0 +1,8 @@
++syntax = "proto3";
++
++message Test {
++  CustomMessage message_field = 1;
++  AnotherType another_message = 2;
++  optional ThirdType optional_message = 3;
++  SomeService.NestedType nested_type = 4;
++}`,
+			expectedErrors: []string{},
+		},
+		{
+			name: "should_flag_only_scalar_types_in_mixed_field_types",
+			diffOutput: `diff --git a/proto/v1/test.proto b/proto/v1/test.proto
+new file mode 100644
+index 0000000..123
+--- /dev/null
++++ b/proto/v1/test.proto
+@@ -0,0 +1,10 @@
++syntax = "proto3";
++
++message Test {
++  string missing_optional_scalar = 1;
++  CustomMessage message_field = 2;
++  optional string has_optional_scalar = 3;
++  AnotherType another_message = 4;
++  int32 missing_optional_int = 5;
++  optional CustomType optional_message = 6;
++}`,
+			expectedErrors: []string{
+				"proto/v1/test.proto:4: field 'missing_optional_scalar' of type 'string' is missing 'optional' keyword",
+				"proto/v1/test.proto:8: field 'missing_optional_int' of type 'int32' is missing 'optional' keyword",
 			},
 		},
 		{
