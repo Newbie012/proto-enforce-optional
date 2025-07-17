@@ -1,6 +1,13 @@
 name: 'Proto Enforce Optional'
 description: 'Enforces that newly added protobuf scalar fields have the optional keyword (repeated, map, and oneof fields are skipped)'
-author: 'OligoCyberSecurity'
+author: 'Newbie012'
+
+# GitHub Marketplace metadata
+marketplace:
+  pricing: 'free'
+  categories:
+    - 'code-quality'
+    - 'testing'
 
 inputs:
   base-ref:
