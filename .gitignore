@@ -1,0 +1,6 @@
+# Go test files
+*.test
+*.out
+
+# Temporary files
+check_output.txt 

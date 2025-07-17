@@ -1,0 +1,71 @@
+name: 'Proto Enforce Optional'
+description: 'Enforces that newly added protobuf scalar fields have the optional keyword (repeated, map, and oneof fields are skipped)'
+author: 'OligoCyberSecurity'
+
+inputs:
+  base-ref:
+    description: 'Base git reference to compare against'
+    required: false
+    default: 'origin/main'
+  head-ref:
+    description: 'Head git reference to compare'
+    required: false
+    default: 'HEAD'
+  working-directory:
+    description: 'Working directory where the protobuf files are located'
+    required: false
+    default: '.'
+
+outputs:
+  violations-found:
+    description: 'Whether any violations were found (true/false)'
+    value: ${{ steps.check.outputs.violations-found }}
+  violations-count:
+    description: 'Number of violations found'
+    value: ${{ steps.check.outputs.violations-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        check-latest: true
+
+    - name: Run optional field check
+      id: check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Checking protobuf fields from ${{ inputs.base-ref }} to ${{ inputs.head-ref }}..."
+        
+        # Run the check and capture output
+        if go run ${{ github.action_path }} "${{ inputs.base-ref }}" "${{ inputs.head-ref }}" > check_output.txt 2>&1; then
+          echo "✅ All newly added protobuf fields are properly configured"
+          echo "violations-found=false" >> $GITHUB_OUTPUT
+          echo "violations-count=0" >> $GITHUB_OUTPUT
+          cat check_output.txt
+        else
+          exit_code=$?
+          echo "❌ Found protobuf field violations:"
+          cat check_output.txt
+          
+          # Count violations (each line starting with "❌" is a violation)
+          violation_count=$(grep -c "^❌" check_output.txt || echo "0")
+          
+          echo "violations-found=true" >> $GITHUB_OUTPUT
+          echo "violations-count=$violation_count" >> $GITHUB_OUTPUT
+          
+          # Clean up temp files
+          rm -f check_output.txt
+          
+          exit $exit_code
+        fi
+        
+        # Clean up temp files
+        rm -f check_output.txt
+
+branding:
+  icon: 'check-circle'
+  color: 'green' 
