@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+message Test {
+  string missing_optional = 1;      // Should be flagged
+  optional string has_optional = 2; // Should pass
+  CustomMessage message_field = 3;   // Should pass (message type)
+  int32 missing_int_optional = 4;   // Should be flagged
+  repeated string tags = 5;          // Should pass (repeated)
+  optional CustomType opt_message = 6; // Should pass (message type)
+} 
