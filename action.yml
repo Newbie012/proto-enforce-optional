@@ -47,8 +47,15 @@ runs:
       run: |
         echo "Checking protobuf fields from ${{ inputs.base-ref }} to ${{ inputs.head-ref }}..."
         
+        # Build the binary in the action's directory first
+        cd "${{ github.action_path }}"
+        go build -o proto-enforce-optional .
+        
+        # Move back to working directory and run the binary
+        cd "${{ inputs.working-directory }}"
+        
         # Run the check and capture output
-        if go run ${{ github.action_path }} "${{ inputs.base-ref }}" "${{ inputs.head-ref }}" > check_output.txt 2>&1; then
+        if "${{ github.action_path }}/proto-enforce-optional" "${{ inputs.base-ref }}" "${{ inputs.head-ref }}" > check_output.txt 2>&1; then
           echo "✅ All newly added protobuf fields are properly configured"
           echo "violations-found=false" >> $GITHUB_OUTPUT
           echo "violations-count=0" >> $GITHUB_OUTPUT
