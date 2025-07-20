@@ -74,11 +74,12 @@ runs:
         cd "${{ github.action_path }}"
         go build -o proto-enforce-optional .
         
-        # Move back to working directory and run the binary
+        # Move back to working directory and copy the binary
         cd "${{ inputs.working-directory }}"
+        cp "${{ github.action_path }}/proto-enforce-optional" ./proto-enforce-optional
         
         # Run the check and capture output
-        if "${{ github.action_path }}/proto-enforce-optional" "${{ inputs.base-ref }}" "${{ inputs.head-ref }}" > check_output.txt 2>&1; then
+        if ./proto-enforce-optional "${{ inputs.base-ref }}" "${{ inputs.head-ref }}" > check_output.txt 2>&1; then
           echo "✅ All newly added protobuf fields are properly configured"
           echo "violations-found=false" >> $GITHUB_OUTPUT
           echo "violations-count=0" >> $GITHUB_OUTPUT
@@ -95,13 +96,13 @@ runs:
           echo "violations-count=$violation_count" >> $GITHUB_OUTPUT
           
           # Clean up temp files
-          rm -f check_output.txt
+          rm -f check_output.txt proto-enforce-optional
           
           exit $exit_code
         fi
         
         # Clean up temp files
-        rm -f check_output.txt
+        rm -f check_output.txt proto-enforce-optional
 
 branding:
   icon: 'check-circle'
