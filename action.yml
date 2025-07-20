@@ -34,6 +34,11 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
@@ -46,6 +51,24 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         echo "Checking protobuf fields from ${{ inputs.base-ref }} to ${{ inputs.head-ref }}..."
+        
+        # Add some diagnostic information
+        echo "📊 Git repository diagnostics:"
+        echo "Current directory: $(pwd)"
+        echo "Git status: $(git status --porcelain | wc -l) files changed"
+        echo "Available branches: $(git branch -a | head -5 | tr '\n' ' ')"
+        echo "Checking if base ref exists: ${{ inputs.base-ref }}"
+        if git rev-parse --verify "${{ inputs.base-ref }}" >/dev/null 2>&1; then
+          echo "✅ Base ref ${{ inputs.base-ref }} exists"
+        else
+          echo "❌ Base ref ${{ inputs.base-ref }} not found"
+          echo "Available remote branches:"
+          git branch -r | head -10
+        fi
+        
+        # Check for .proto files
+        proto_count=$(find . -name "*.proto" | wc -l)
+        echo "Found $proto_count .proto files in repository"
         
         # Build the binary in the action's directory first
         cd "${{ github.action_path }}"

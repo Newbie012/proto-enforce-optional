@@ -36,6 +36,12 @@ type fieldInfo struct {
 func main() {
 	baseCommit, headCommit := parseArgs()
 
+	// Validate git references before running diff
+	if err := validateGitReferences(baseCommit, headCommit); err != nil {
+		fmt.Fprintf(os.Stderr, "Git validation error: %v\n", err)
+		os.Exit(1)
+	}
+
 	violations, err := checkGitDiff(baseCommit, headCommit)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error checking git diff: %v\n", err)
@@ -80,6 +86,15 @@ func checkGitDiff(baseCommit, headCommit string) ([]string, error) {
 	cmd := exec.Command("git", "diff", "-U10", diffSpec, "--", "*.proto")
 	output, err := cmd.Output()
 	if err != nil {
+		// Get more detailed error information
+		if exitError, ok := err.(*exec.ExitError); ok {
+			stderr := string(exitError.Stderr)
+			// Check if it's a reference issue
+			if strings.Contains(stderr, "unknown revision") || strings.Contains(stderr, "bad revision") {
+				return nil, fmt.Errorf("git reference not found: %s. Please check that the base reference '%s' exists", stderr, baseCommit)
+			}
+			return nil, fmt.Errorf("git diff failed (exit %d): %s", exitError.ExitCode(), stderr)
+		}
 		return nil, fmt.Errorf("failed to run git diff: %v", err)
 	}
 
@@ -216,4 +231,25 @@ func parseField(line string) *fieldInfo {
 		fieldType: matches[2],
 		fieldName: matches[3],
 	}
+}
+
+func validateGitReferences(baseCommit, headCommit string) error {
+	// Check if we're in a git repository
+	if _, err := exec.Command("git", "rev-parse", "--git-dir").Output(); err != nil {
+		return fmt.Errorf("not in a git repository or git not available")
+	}
+
+	// Check if base commit exists
+	if _, err := exec.Command("git", "rev-parse", "--verify", baseCommit).Output(); err != nil {
+		return fmt.Errorf("base reference '%s' not found. Common alternatives: 'origin/master', 'main', 'HEAD~1'", baseCommit)
+	}
+
+	// Check if head commit exists (if not HEAD)
+	if headCommit != "HEAD" && headCommit != "." {
+		if _, err := exec.Command("git", "rev-parse", "--verify", headCommit).Output(); err != nil {
+			return fmt.Errorf("head reference '%s' not found", headCommit)
+		}
+	}
+
+	return nil
 }
